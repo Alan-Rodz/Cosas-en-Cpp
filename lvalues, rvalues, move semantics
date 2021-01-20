@@ -1,0 +1,209 @@
+lvalues and rvalues:
+
+An lvalue is, a lot of times, something that is to the left of the equal sign and an rvalue something that is to the right of the equal sign (though this does not always apply) 
+
+modifiable = non const
+
+While we can't  have an lvalue reference of an rvalue (something like int& a = 10;) WE CAN have a const lvalue reference, which would be like const int& a = 10; 
+
+We can detect whether or not something is an actual lvalue by writing an lvalue reference that is not const, since an lvalue reference can only accept lvalues.  
+
+If we wanted to create a functionthat only accepts temporary objects (rvalues), we would use rvalue references, and they look the same as an lvalue reference but we use && 
+
+This allows us to overload functions, making a version that only accepts temporary objects, and another one that accepts lvalues, and even if we make it const (meaning that it will be compatible with rvalues), if we use temporary objects, the rvalue version will be chosen if it still exists
+
+With rvalue references, we get a way to detect temporary values and do something special to them 
+
+How is this useful?
+- Move semantics
+- Optimizations
+- If we know that we're taking a temporary object, then we don't have to worry about making sure that we keep it alive, intact, or copying it. We can simply steal the resources that might be attached to that specific object and use them somewhere else, since we know that its temporary (and thus it won't exist for very long) 
+
+lvalue: 
+- variable with some kind of storage backing it up
+- lvalue references (&) can only take lvalues unless they're const 
+
+rvalue: 
+- temporary values  
+- rvalue references (&&) only take temporary rvalues 
+
+here's some code that illustrates this concepts
+
+```
+#include <iostream>
+//devuelve una lvalue reference
+int& ObtenerValor()
+{
+    static int valor = 10;
+    return valor;
+}
+//Esta función puede ser llamada con un lvalue o un rvalue
+void SetValor(const int& valor)
+{
+}
+//Función sin el const que no acepta rvalues
+//Por tanto esto es una lvalue reference, solo acepta lvalues
+void imprimirNombre(std::string& nombre)
+{
+    std::cout << nombre << std::endl;
+}
+//Función con el const que sí acepta rvalues
+void imprimirNombre2(const std::string& nombre)
+{
+    std::cout << nombre << std::endl;
+}
+//Función que solo acepta rvalues
+void imprimirNombre3(std::string&& nombre)
+{
+    std::cout << nombre << std::endl;
+}
+int main()
+{
+    //lvalue - rvalue
+    int i = 10;
+    //lvalue - rvalue
+    ObtenerValor() = 5;
+    int j = 10;
+    //Llamando setValue con un lvalue
+    SetValor(j);
+    //Llamando setValue con un rvalue
+    SetValor(12);
+    //lvalues           rvalues
+    //Un string temporal es construido a partir de nombre y apellido y luego se asigna a nombre_completo
+    std::string nombre = "Alan";
+    std::string apellido = "Rodz";
+    std::string nombre_completo = nombre + apellido;
+    //Esto funciona
+    imprimirNombre(nombre_completo);
+    //Esto no porque el argumento es un rvalue
+    //imprimirNombre(nombre + apellido);
+    
+    //Esto si funciona porque esta version si tiene const
+    imprimirNombre2(nombre + apellido);
+    //Esto no funciona porque esta version solo acepta rvalues
+    //imprimirNombre3(nombre_completo);
+    //En cambio esto si
+    imprimirNombre3(nombre + apellido);
+}
+```
+
+As a summary:
+An lvalue is something that points to a specific memory location. An rvalue is something that doesn't point anywhere. In general, rvalues are temporary and short lived, whereas lvalues live a longer life since they exist as variables.
+
+Rule of three:
+
+The rule of three is a rule of thumb in C++ programming that claims that if a class defines any of the following, it should probably define all three:
+- destructor
+- copy constructor
+- copy assignment operator
+
+These 3 functions are special member functions. If one of these is used without first being declared by the programmer it will be implicitly implemented by the compiler with the following default semantics:
+- Destructor: Call the destructors of all the object's class-type members
+- Copy constructor: Construct all the object's members from the corresponding members of the copy constructor's argument calling the copy constructors of the object's class type members, and doing a plain assignment of all non-class type data members
+- Copy assignment operator: Assign all the object's members from the corresponding members of the assignment operator's argument, calling the copy assignment operators of the object's class-type members, and doing a plain assignment of all non-class type data members
+
+The rule of 3 claims that if one of these had to be defined by the programmer, it means that the compiler-generated version does not fit the needs of the class in one case and it will probably not fit in the other cases either
+
+An amendment to this rule is that if the class is defined in such a way that resource acquisition is initialization is used for all its (nontrivial) members, the destructor may be left undefined (also known as the law of the big two).
+
+Move semantics:
+
+Move semantics allow us to avoid unnecessary copies when working with temporary objects that are about to evaporate, and whose resources can safely be taken from that temporary object and used by another
+
+Move semantics were introduced in C++ 11, which introduced rvalue references, which are necessary for move semantics
+
+When we write c++ code they're a lot of cases in which we don't need to or want to necessarily copy an object from one place to another, but we can only get it from one place to another through a copy 
+
+For example if we pass an object into a function that is then going to take ownership of that object, we have no choice but to copy it 
+
+The same goes for when we want to return an object from a function, we must create that object inside the function and then return it , which means that again, we're copying that data 
+
+If we can just move the objects instead of copying them, then performance improves
+
+Suppose we have a basic string class which only holds a pointer to a heap-allocated block of memory:
+
+```
+#include <cstring>
+#include <algorithm>
+
+class string
+{
+    char* data;
+
+public:
+
+    string(const char* p)
+    {
+        size_t size = std::strlen(p) + 1;
+        data = new char[size];
+        std::memcpy(data, p, size);
+    }
+```
+
+Since we chose to manage the memory ourselves we have to follow the rule of 3 (implement destructor, copy constructor and copy assignment operator), cause we're dealing with dynamic memory
+
+In this example we implement only the destructor and the copy constructor
+
+```
+   ~string()
+    {
+        delete[] data;
+    }
+
+    string(const string& that)
+    {
+        size_t size = std::strlen(that.data) + 1;
+        data = new char[size];
+        std::memcpy(data, that.data, size);
+    }
+```
+
+Thus the copy constructor defines what it means to copy string objects. The parameter const string& that binds to all expressions of type string, which allows us to make copies in this 3 ways:
+
+```
+string a(x);                                    // Line 1
+string b(x + y);                                // Line 2
+string c(some_function_returning_a_string());   // Line 3
+```
+
+Now comes the key insight into move semantics. Only in line 1 where we copy x is a deep copy necessary, since we might want to inspect x later and we would be very surprised if x had changed somehow. In this case, x is an lvalue
+
+The arguments in lines 2 and 3 are not lvalues, but rvalues, since the underlying string objects have no names, and thus the client has no way of inspecting them again at a later point in time. Thus, rvalues denote temporary objects which are destroyed at the next semicolon (to be more precise, at the end of the full expression that lexically contains the rvalue). This is important because during the initialization of b and c, we could do whatever we wanted to do with the source string, and the client would not be able to tell a difference
+
+C++0x introduced a mechanism called rvalue reference, which among other things allows us to detect rvalue arguments through function overloading. All we have to do is write a constructor with an rvalue reference parameter. Inside that constructor we can do anything we want with the srouce, as long as we leave it in some valid state
+
+```
+   string(string&& that)   // string&& is an rvalue reference to a string
+    {
+        data = that.data;
+        that.data = nullptr;
+    }
+```
+
+Thus, in the above, instead of deeply copying the heap data, we have just copied the pointer and then set the original pointer to null (to prevent 'delete[]' from the source object's destructor from releasing our 'just stolen data'). 
+
+In effect, we have stolen the data that originally belonged to the source string. The key insight is that under no circumstance would the client be able to detect that the source has been modified 
+
+Since we don't really make a copy here, we call this constructor a "move constructor", whose job is to move resources from one object to another instead of copying them. 
+
+Those are the basics of move semantics. Now we can implement the assignment operator. 
+
+```
+    string& operator=(string that)
+    {
+        std::swap(data, that.data);
+        return *this;
+    }
+};
+```
+
+Note that we pass the parameter "that" by value, so it must be initialized just like any other string object. In the old days of C++98, it would have been initialized by the copy constructor, but in C++0x the compiler chooses between the copy constructor and the move constructor basing itself on whether or not the argument to the assignment operator is an lvalue or an rvalue
+
+Thus if we say a = b the copy constructor will initialize "that", since "b" is an lvalue, and the assignment operator swaps the contents with a freshly created, deep copy
+
+But if we say a = x + y then the move constructor will initialize "that", since "x+y" is an rvalue, and thus there will be no deep copy involved, only an efficient move. "that" will still be an independent object from the argument, but its construction was trivial since the heap data didn't have to be copied, just moved. It wasn't necessary to copy it since "x+y" is an rvalue and again, it is okay to move from string objects denoted by rvalues
+
+To summarize move semantics:
+
+The copy constructor makes a deep copy since the source must remain untouched. The move constructor can just copy the pointer and set the pointer in the source to null. It is ok to "nullify" the source object in this manner since the client has no way of inspecting the object again.
+
