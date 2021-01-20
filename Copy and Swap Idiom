@@ -1,0 +1,100 @@
+A programming idiom, or code idiom is expressing a special feature of a recurring construct in one or more programming languages. 
+
+Developers  recognize programming idioms by associating and giving meaning to one or more code fragments. The idiom can be seen as a concept underlying a pattern in code, which is represented in implementation by continuous or scattered code fragments. 
+
+Generally speaking, a programming idiom is a natural language expression of a simple task, algorithm or data structure that is not a built in feature in the programming language being used, or conversely, the use of an unusual or notable feature that IS built into a programming language. 
+
+Furthermore the term can be used more broadly to refer to complex algorithms or programming design patterns in terms of implementation and omitting design rationale.
+
+For example, an idiomatic way to manage dynamic memory in C would be to use the C standard library functions malloc and free. 
+
+That being said, we can start talking about the copy and swap idiom.
+
+Any class that manages a resource (a wrapper, like a smart pointer), needs to implement The Big Three (Copy constructor, destructor, copy assignment operator). 
+
+The copy assignment operator is arguably the most nuanced and difficult. How should it be done? What should we avoid?
+
+The copy and swap idiom is the solution, and it assists the assignment operator in achieving 2 things:
+- Avoiding code duplication
+- Providing a strong exception guarantee
+
+Conceptually, it works by using the copy-constructor's functionality to create a local copy of the data, and then taking the copied data with a swap function, swapping the old data with the new data. 
+
+In order to use the copy and swap idiom, we need 3 things:
+- A working copy constructor
+- A working destructor
+- A swap function
+
+A swap function is a non throwing function that swaps 2 objects of a class, member for member. We can't use std::swap since it uses the copy constructor and copy assignment operator within its implementation, and we'd ultimately be trying to define the assignment operator in terms of itself
+
+Assignment is at its heart a two step process:
+- Tearing down the object's old state
+- Building its new state as a copy of some other object's state
+
+Basically that is what the destructor and the copy constructor do. However, since destruction must not fail, while construction might, we actually want to do it the other way around:
+- First perform the constructive part, and if that succeeded
+- Do the destructive part
+
+The copy and swap idiom is a way to do just that. It first calls a class's copy constructor to create a temporary object, then swaps its data with the temporary's, and then lets the temporary's destructor destroy de old state.
+
+Since swap() is supposed to never fail, the only part which might fail is the copy-construction. That is performed first, and if it fails, nothing will be changed in the targeted object. 
+
+In its refined form, copy and swap is implemented by having the copy performed by initializing the (non-reference) parameter of the assignment operator:
+
+```
+T& operator=(T tmp)
+{
+    this->swap(tmp);
+    return *this;
+}
+```
+
+Consider the following example:
+
+```
+// Simple C++ program to demonstrate use of copy-and-swap 
+// idiom by improving above code. 
+#include <iostream> 
+#include <cstring> 
+using namespace std; 
+class anyArrayClass 
+{ 
+    int size; 
+    int *ptr; 
+public: 
+    anyArrayClass(int s=0):size(s), 
+    ptr(size? new int[size]:nullptr) {} 
+    // Copy constructor 
+    anyArrayClass(const anyArrayClass& obj):size(obj.size), 
+                        ptr(size? new int[size]:nullptr) 
+    { 
+        memmove(ptr, obj.ptr, size*sizeof(int)); 
+    } 
+    friend void swap(anyArrayClass& obj1, anyArrayClass& obj2) 
+    { 
+        std::swap(obj1.size, obj2.size); 
+        std::swap(obj1.ptr, obj2.ptr); 
+    } 
+    
+    // overloaded assignment operator 
+    // argument passed by value. calls copy ctor 
+    anyArrayClass& operator=(anyArrayClass obj)  
+    { 
+        // calling friend function 
+        swap(*this, obj); 
+        return *this; 
+    } 
+    ~anyArrayClass() 
+    { 
+        delete[] ptr; 
+    } 
+} 
+```
+
+
+Note that the parameter to the 'operator=()' is passed by value, which calls the copy constructor to create a anyArrayClass object local to the 'operator=()'. Then the value of the temp object is swapped with '*this' object.
+
+Advantages:
+- No more self assignment check is needed, since the parameter is passed by value (which means that no more memory de-allocation is needed). 
+- The copy constructor is now used to create the temporary object and thus, the swapping will only be done if the temporary object is created at all. 
+- Code re-usability: As we can see, the 'operator=()' does not have much code in its body but rather, we're using the copy constructor and the swap function to do all the job
