@@ -1,0 +1,60 @@
+
+First Explanation:
+
+Resource acquisition is initialization (RAII) is a programming idiom used in several object oriented, statically typed programming languages to describe  particular language behavior. 
+
+In RAII, holding a resource is a class invariant, and is tied to object lifetime. Resource allocation (or acquisition) is done during object creation (specifically initialization) by the constructor, whereas resource de-allocation (release) is done during the object destruction(specifically finalization) by the destructor. 
+
+In other words, resource acquisition must succeed for initialization to succeed. 
+
+Thus, the resource is guaranteed to be held between when initialization finishes and finalization starts (holding the resources is a class invariant), and to be held only when the object is alive. Thus, if there are no object leaks, there are no resource leaks. 
+
+When we say resource we don't just mean memory, since we could be talking about file handles, network sockets, database handles, etc, which are things that we have a finite supply of and thus we need to be able to control their usage.
+
+Second Explanation:
+There have been attempts to rename RAII to Scope-Bound Resource Management, where the "Scope bound" aspect means that the lifetime of the object is bound to the scope of a variable, such that when the variable goes out of scope the destructor releases the resource.
+
+A very useful property of this is that it makes for greater exception safety 
+
+For example
+
+```
+RawResourceHandle* handle=createNewResource();
+handle->performInvalidOperation();  // Oops, throws exception
+...
+deleteResource(handle); // oh dear, never gets called so the resource leaks
+```
+
+becomes this when using RAII
+
+```
+class ManagedResourceHandle {
+public:
+   ManagedResourceHandle(RawResourceHandle* rawHandle_) : rawHandle(rawHandle_) {};
+   ~ManagedResourceHandle() {delete rawHandle; }
+   ... // omitted operator*, etc
+private:
+   RawResourceHandle* rawHandle;
+};
+
+ManagedResourceHandle handle(createNewResource());
+handle->performInvalidOperation();
+```
+
+In the latter case, when the exception is thrown and the stack is unwound, the local variables are destroyed, which ensures that our resource is cleaned up and thus does not leak.
+
+Third Explanation:
+
+RAII is a programming idiom which means that we:
+- Encapsulate a resource into a class (whose constructor usually but not necessarily) acquires the resource, and its destructor always releases it 
+- Use the resource via a local instance of the class*
+- The resource is automatically freed when the object goes out of scope
+
+This guarantees that whatever happens while the resource is in use, it will eventually get freed (whether due to normal return, destruction of the containing object, or an exception throw).
+
+It is a widely used good practice in C++, since it is a safe way to deal with resources and it also makes code much cleaner, as we don't need to mix error handling with the main functionality.
+
+- Note that by "local" we refer to what may be a local variable or a non-static member variable of a class. In the latter case the member variable is initialized and destroyer with its owner object
+- Also the resource, although often allocated inside the constructor, may also be allocated outside and passed in as a parameter
+
+
