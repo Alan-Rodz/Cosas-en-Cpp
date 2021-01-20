@@ -1,0 +1,266 @@
+//Classes
+// Create a Car class with some attributes
+class Car 
+{
+  public:
+    string brand;   
+    string model;
+    int year;
+};
+
+int main() 
+{
+  // Create an object of Car
+  Car carObj1;
+  carObj1.brand = "BMW";
+  carObj1.model = "X5";
+  carObj1.year = 1999;
+  // Create another object of Car
+  Car carObj2;
+  carObj2.brand = "Ford";
+  carObj2.model = "Mustang";
+  carObj2.year = 1969;
+  // Print attribute values
+  cout << carObj1.brand << " " << carObj1.model << " " << carObj1.year << "\n";
+  cout << carObj2.brand << " " << carObj2.model << " " << carObj2.year << "\n";
+  return 0;
+}
+--------------------------------------------------------------------------------
+//Constructors
+// Cpp program to illustrate the
+// concept of Constructors
+#include <iostream>
+using namespace std;
+class construct 
+{
+public:
+    int a, b;
+    // Default Constructor
+    construct()
+    {
+        a = 10;
+        b = 20;
+    }
+};
+int main()
+{
+    // Default constructor called automatically
+    // when the object is created
+    construct c;
+    cout << "a: " << c.a << endl
+         << "b: " << c.b;
+    return 1;
+}
+--------------------------------------------------------------------------------
+//Copy Constructors 1
+#include<iostream> 
+using namespace std; 
+class Point 
+{ 
+private: 
+    int x, y; 
+public: 
+    Point(int x1, int y1) { x = x1; y = y1; } 
+    
+    // Copy constructor 
+    Point(const Point &p2) {x = p2.x; y = p2.y; } 
+    int getX()       { return x; } 
+    int getY()       { return y; } 
+}; 
+int main() 
+{ 
+    Point p1(10, 15); // Normal constructor is called here 
+    Point p2 = p1; // Copy constructor is called here 
+    
+    // Let us access values assigned by constructors 
+    cout << "p1.x = " << p1.getX() << ", p1.y = " << p1.getY(); 
+    cout << "\np2.x = " << p2.getX() << ", p2.y = " << p2.getY(); 
+    return 0; 
+}
+--------------------------------------------------------------------------------
+//Copy Constructors 2
+#include<iostream> 
+#include<cstring> 
+using namespace std; 
+
+class String 
+{ 
+private: 
+    char *s; 
+    int size; 
+public: 
+    String(const char *str = NULL); // constructor 
+    ~String() { delete [] s; }// destructor 
+    String(const String&); // copy constructor 
+    void print() { cout << s << endl; } // Function to print string 
+    void change(const char *); // Function to change 
+}; 
+
+String::String(const char *str) 
+{ 
+    size = strlen(str); 
+    s = new char[size+1]; 
+    strcpy(s, str); 
+}
+void String::change(const char *str) 
+{ 
+    delete [] s; 
+    size = strlen(str); 
+    s = new char[size+1]; 
+    strcpy(s, str); 
+} 
+
+String::String(const String& old_str) 
+{ 
+    size = old_str.size; 
+    s = new char[size+1]; 
+    strcpy(s, old_str.s); 
+}
+int main() 
+{ 
+    String str1("GeeksQuiz"); 
+    String str2 = str1; 
+    str1.print(); // what is printed ? 
+    str2.print(); 
+    str2.change("GeeksforGeeks"); 
+    str1.print(); // what is printed now ? 
+    str2.print(); 
+    return 0; 
+}
+--------------------------------------------------------------------------------
+//Destructors
+// spec1_destructors.cpp
+#include <string>
+class String 
+{
+public:
+   String( char *ch );  // Declare constructor
+   ~String();           //  and destructor.
+private:
+   char    *_text;
+   size_t  sizeOfText;
+};
+// Define the constructor.
+String::String( char *ch ) 
+{
+   sizeOfText = strlen( ch ) + 1;
+   // Dynamically allocate the correct amount of memory.
+   _text = new char[ sizeOfText ];
+   // If the allocation succeeds, copy the initialization string.
+   if( _text )
+      strcpy_s( _text, sizeOfText, ch );
+}
+// Define the destructor.
+String::~String() 
+{
+   // Deallocate the memory that was previously reserved
+   //  for this string.
+   delete[] _text;
+}
+int main() 
+{
+   String str("The piper in the glen...");
+}
+--------------------------------------------------------------------------------
+//Inheritance
+// C++ program to demonstrate implementation 
+// of Inheritance 
+#include <bits/stdc++.h> 
+using namespace std; 
+//Base class 
+class Parent 
+{ 
+    public: 
+    int id_p; 
+}; 
+// Sub class inheriting from Base Class(Parent) 
+class Child : public Parent 
+{ 
+    public: 
+    int id_c; 
+}; 
+//main function 
+int main() 
+{ 
+    
+        Child obj1; 
+        
+        // An object of class child has all data members 
+        // and member functions of class parent 
+        obj1.id_c = 7; 
+        obj1.id_p = 91; 
+        cout << "Child id is " << obj1.id_c << endl; 
+        cout << "Parent id is " << obj1.id_p << endl; 
+        
+        return 0; 
+} 
+--------------------------------------------------------------------------------
+//Interfaces 1
+class Box {
+   public:
+      // pure virtual function
+      virtual double getVolume() = 0;
+      
+   private:
+      double length;      // Length of a box
+      double breadth;     // Breadth of a box
+      double height;      // Height of a box
+};
+--------------------------------------------------------------------------------
+//Interfaces 2
+#include <iostream>
+using namespace std;
+// Base class
+class Shape 
+{
+   public:
+      // pure virtual function providing interface framework.
+      virtual int getArea() = 0;
+      void setWidth(int w) 
+      {
+         width = w;
+      }
+   
+      void setHeight(int h) 
+      {
+         height = h;
+      }
+   
+   protected:
+      int width;
+      int height;
+};
+// Derived classes
+class Rectangle: public Shape 
+{
+   public:
+      int getArea() { 
+         return (width * height); 
+      }
+};
+
+class Triangle: public Shape 
+{
+   public:
+      int getArea() { 
+         return (width * height)/2; 
+      }
+};
+int main(void) 
+{
+   Rectangle Rect;
+   Triangle  Tri;
+   Rect.setWidth(5);
+   Rect.setHeight(7);
+   
+   // Print the area of the object.
+   cout << "Total Rectangle area: " << Rect.getArea() << endl;
+
+   Tri.setWidth(5);
+   Tri.setHeight(7);
+   
+   // Print the area of the object.
+   cout << "Total Triangle area: " << Tri.getArea() << endl; 
+
+   return 0;
+}
