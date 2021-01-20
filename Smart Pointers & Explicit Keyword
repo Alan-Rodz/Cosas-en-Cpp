@@ -1,0 +1,399 @@
+As we know, pointers are used to access resources that are external to the program like heap memory. Thus, in order to access the heap memory, pointers are used.
+
+Smart pointers are a way to automate the process of calling delete for said pointer. In many cases we don't even have to call new. 
+
+They are essentially a wrapper around a real, raw pointer. 
+
+In order to access smart pointers we need to #include <memory>
+
+A std::unique_ptr is a scoped pointer, which means that when it goes out of scope, it will get destroyed and it will call delete. They have the name they have since we can't copy them (if we have 2 pointing to the same memory location, when one of them dies it will free that memory location, and thus the other one will now be pointing to memory that has been freed). Thus we can't copy unique pointers
+
+It is important to note that we can create scopes with {}
+
+```
+#include <iostream>
+#include <string>
+#include <memory>
+using std::endl;
+using std::cout;
+class Entidad
+{
+public:
+    //Constructor
+    Entidad()
+    {
+        std::cout << "Se ha creado una entidad!" << endl;
+    }
+    //Destructor
+    ~Entidad()
+    {
+        cout << "Se ha destruido una entidad!" << endl;
+    }
+    //Funcion
+    void Imprimir(){}
+};
+int main()
+{
+    //Nuevo scope
+    //Nuestra entidad se crea aquí
+    {
+        //Podemos usar esta forma
+        //std::unique_ptr<Entidad> entidad(new Entidad());
+        //Pero la forma preferida es
+        //Esto asegura exception safety
+        std::unique_ptr<Entidad> entidad = std::make_unique<Entidad>();
+        entidad->Imprimir(); 
+    }
+    //Para este punto nuestra entidad ha sido destruida
+}
+```
+
+The above code shows us how the unique_ptr works
+
+Then comes the std::shared_ptr, which uses reference counting, which is basically a practice where we keep track of how many references we have to our pointer, and as soon as that reference count reaches zero, that's when it gets deleted
+
+For example, i create a shared pointer, then i create a new one, and now my reference count is 2, one for the first one and one for the second one. When one of them dies, the reference count goes down by 1, and when the last one dies the reference count goes to zero, and thus the memory gets freed
+
+```
+#include <iostream>
+#include <string>
+#include <memory>
+using std::endl;
+using std::cout;
+class Entidad
+{
+public:
+    //Constructor
+    Entidad()
+    {
+        std::cout << "Se ha creado una entidad!" << endl;
+    }
+    //Destructor
+    ~Entidad()
+    {
+        cout << "Se ha destruido una entidad!" << endl;
+    }
+    //Funcion
+    void Imprimir(){}
+};
+int main()
+{
+    //Nuevo scope
+    //Nuestra entidad se crea aquí
+    {
+        //Podemos usar esta forma
+        //std::unique_ptr<Entidad> entidad(new Entidad());
+        //Pero la forma preferida es
+        //Esto asegura exception safety
+        std::unique_ptr<Entidad> entidad = std::make_unique<Entidad>();
+        entidad->Imprimir(); 
+        //shared_ptr usa reference counting
+        //Estos si los podemos copiar
+        //Mueren cuando la reference count llega a cero
+        std::shared_ptr<Entidad> entidad_compartida = std::make_shared<Entidad>();
+        std::shared_ptr<Entidad> e2 = entidad_compartida;
+        entidad->Imprimir();
+        e2->Imprimir();
+    }
+    //Para este punto nuestra entidad ha sido destruida
+}
+```
+
+Then there is also std::weak_ptr, which we can use to copy from shared pointer but these do not increase the reference count. 
+- When we assign a shared ptr to a weak ptr, the reference count won't increase 
+This is good if we don't want to take ownership of the entity. 
+These can be asked "are you still valid" at any point of the program execution. 
+
+```
+#include <iostream>
+#include <string>
+#include <memory>
+using std::endl;
+using std::cout;
+class Entidad
+{
+public:
+    //Constructor
+    Entidad()
+    {
+        std::cout << "Se ha creado una entidad!" << endl;
+    }
+    //Destructor
+    ~Entidad()
+    {
+        cout << "Se ha destruido una entidad!" << endl;
+    }
+    //Funcion
+    void Imprimir(){}
+};
+int main()
+{
+    //Nuevo scope
+    //Nuestra entidad se crea aquí
+    {
+        //Podemos usar esta forma
+        //std::unique_ptr<Entidad> entidad(new Entidad());
+        //Pero la forma preferida es
+        //Esto asegura exception safety
+        std::unique_ptr<Entidad> entidad = std::make_unique<Entidad>();
+        entidad->Imprimir(); 
+        //shared_ptr usa reference counting
+        //Estos si los podemos copiar
+        //Mueren cuando la reference count llega a cero
+        std::shared_ptr<Entidad> entidad_compartida = std::make_shared<Entidad>();
+        std::shared_ptr<Entidad> e2 = entidad_compartida;
+        entidad->Imprimir();
+        e2->Imprimir();
+        //Weak pointers
+        std::weak_ptr<Entidad> entidad_debil = entidad_compartida;
+    }
+    //Para este punto nuestra entidad ha sido destruida
+}
+```
+
+When should we use them?
+- All the time, since they automate memory management
+- They prevent memory leaking
+- They are quite useful
+
+Use unique_ptr whenever we can since it has a low overhead, and if we need to share between objects or if we can't use an unique_ptr, then we use shared_ptr 
+
+Note that overhead refers to those system resources which are consumed by the code when its running on a given platform on a given set of input data. Another way of getting this is that overhead are the resources required to set up an operation. 
+
+Most often overhead refers to memory and CPU time that is used but does not contribute directly to the intended result, even though they are required by the technology or method that is being used. 
+
+ Examples:
+
+
+
+
+Smart pointers: Alternative explanation
+
+Consider the following code:
+
+```
+#include <iostream> 
+using namespace std; 
+class Rectangle { 
+private: 
+    int length; 
+    int breadth; 
+}; 
+void fun() 
+{ 
+    // By taking a pointer p and 
+    // dynamically creating object 
+    // of class rectangle 
+    Rectangle* p = new Rectangle(); 
+} 
+int main() 
+{ 
+    // Infinite Loop 
+    while (1) { 
+        fun(); 
+    } 
+} 
+```
+
+In the code above, we have a pointer 'p' that will be pointing to an object of type rectangle, which will have a length and breadth. 
+
+Once the function ends, this 'p' is deleted since p is a local variable to the function, which ends, but the new rectangle that is allocated inside the heap will not be de-allocated.
+
+This will happen indefinitely since we're in an infinite loop. Slowly the entire heap memory might become unused, since it is allocated but not in use. 
+
+At one point, because of a lack of heap memory, the program will crash. The laziness or carelessness of the programmer may make this happen. 
+
+
+
+Using smart pointers we can make pointers work in a way such that we don't need to explicitly call delete. 
+
+A smart pointer is a wrapper class over a pointer with an operator like * and -> overloaded. 
+
+The objects of a smart pointer class have automatic destruction, reference counting and more. 
+
+The idea is to take a class with a pointer, destructor and overloaded operators like * and ->. Since the destructor is automatically called when an object goes out of scope, the dynamically allocated memory would automatically be deleted (or the reference count decremented)
+
+Example 1
+
+```
+#include <iostream> 
+using namespace std; 
+class SmartPtr { 
+    int* ptr; // Actual pointer 
+public: 
+    // Constructor: Refer https:// www.geeksforgeeks.org/g-fact-93/ 
+    // for use of explicit keyword 
+    explicit SmartPtr(int* p = NULL) { ptr = p; } 
+    // Destructor 
+    ~SmartPtr() { delete (ptr); } 
+    // Overloading dereferencing operator 
+    int& operator*() { return *ptr; } 
+}; 
+int main() 
+{ 
+    SmartPtr ptr(new int()); 
+    *ptr = 20; 
+    cout << *ptr; 
+    // We don't need to call delete ptr: when the object 
+    // ptr goes out of scope, the destructor for it is automatically 
+    // called and destructor does delete ptr. 
+    return 0; 
+}
+```
+
+
+Types of smart pointers:
+- unique_ptr
+```
+#include <iostream> 
+using namespace std; 
+#include <memory> 
+class Rectangle { 
+    int length; 
+    int breadth; 
+public: 
+    Rectangle(int l, int b) 
+    { 
+        length = l; 
+        breadth = b; 
+    } 
+    int area() 
+    { 
+        return length * breadth; 
+    } 
+}; 
+int main() 
+{ 
+    unique_ptr<Rectangle> P1(new Rectangle(10, 5)); 
+    cout << P1->area() << endl; // This'll print 50 
+    // unique_ptr<Rectangle> P2(P1); 
+    unique_ptr<Rectangle> P2; 
+    P2 = move(P1); 
+    // This'll print 50 
+    cout << P2->area() << endl; 
+    // cout<<P1->area()<<endl; 
+    return 0; 
+} 
+```
+
+- shared_ptr 
+```
+#include <iostream> 
+using namespace std; 
+#include <memory> 
+class Rectangle { 
+    int length; 
+    int breadth; 
+public: 
+    Rectangle(int l, int b) 
+    { 
+        length = l; 
+        breadth = b; 
+    } 
+    int area() 
+    { 
+        return length * breadth; 
+    } 
+}; 
+int main() 
+{ 
+    shared_ptr<Rectangle> P1(new Rectangle(10, 5)); 
+    // This'll print 50 
+    cout << P1->area() << endl; 
+    shared_ptr<Rectangle> P2; 
+    P2 = P1; 
+    // This'll print 50 
+    cout << P2->area() << endl; 
+    // This'll now not give an error, 
+    cout << P1->area() << endl; 
+    // This'll also print 50 now 
+    // This'll print 2 as Reference Counter is 2 
+    cout << P1.use_count() << endl; 
+    return 0; 
+} 
+```
+
+- weak_ptr: Very similar to shared_ptr but it does not maintain a reference counter. Thus, a pointer of this type won't have a strong hold on the object
+
+The explicit keyword:
+
+Suppose we have a class String:
+
+```
+class String {
+public:
+    String(int n); // allocate n bytes to the String object
+    String(const char *p); // initializes object with char *p
+};
+```
+
+Now if we try
+
+```
+String mystring = 'x';
+```
+
+The character 'x' will be implicitly converted to int and then the String(int) constructor will be called. But this is not what the user might have intended.
+
+To prevent such conditions, we shall define the constructor as explicit:
+
+```
+class String {
+public:
+    explicit String (int n); //allocate n bytes
+    String(const char *p); // initialize sobject with string p
+};
+```
+
+Another explanation:
+
+The compiler is allowed to make one implicit conversion to resolve the parameters to a function. What this means is that the compiler can use constructors callable within a single parameter to convert from one type to another in order to get the right type for a parameter. 
+
+An example of a class with a constructor that can be used for implicit conversion would be:
+
+```
+class Foo
+{
+public:
+  // single parameter constructor, can be used as an implicit conversion
+  Foo (int foo) : m_foo (foo) 
+  {
+  }
+
+  int GetFoo () { return m_foo; }
+
+private:
+  int m_foo;
+};
+```
+
+And a function that takes a Foo object would be:
+
+```
+void DoBar (Foo foo)
+{
+  int i = foo.GetFoo ();
+}
+```
+
+Which when called would look like:
+
+```
+int main ()
+{
+  DoBar (42);
+}
+```
+
+The argument is not a Foo object, but an int. However, there exists a constructor for Foo that takes an int, so this constructor can be used to convert the parameter to the correct type.
+
+The compiler is allowed to do this once for each parameter. 
+
+Prefixing the explicit keyword to the constructor prevents the compiler from using that constructor for implicit conversions.
+
+Adding it to the above class will create a compiler error at the function call DoBar(42). It will now be necessary to call for conversion explicitly with DoBar(Foo(42))
+
+The reason we might want to do this is to avoid accidental construction, that can hide bugs.
+
+An example:
+
